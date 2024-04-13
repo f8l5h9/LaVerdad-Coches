@@ -1,0 +1,193 @@
+---
+title: "Untitled"
+author: "Fernando"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Coches y renta
+```{r}
+library(feather)
+# write_feather(coches,'cochesf')
+library(tictoc)
+tic()
+coches <- read_feather("cochesf")
+toc()
+tic()
+load("coches.RData")
+toc()
+
+coches.t <- coches %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.robo <- coches.t[coches.t$ind.robo =="S",]
+coches.mu <- coches.t[coches.t$provincia.veh =="MU",]
+coches.mu$one <- 1
+aa <- xtabs(one ~  marca + muni, data=coches.mu)
+attr(aa, "class") <- NULL
+```
+
+```{r moda por cine}
+mds <- coches.t %>%
+  group_by(cine) %>%
+  summarize(marca1 = names(which.max(table(marca))),
+            cmarca1 = sum(marca==names(which.max(table(marca)))),
+            marca2 = names(sort(-table(marca))[2]),
+            cmarca2 = sum(marca == marca2),
+            modelo1 = names(which.max(table(modelo))),
+            cmodelo = sum(modelo==modelo1))
+mds$marca11 <- mds$marca1
+mds$marca11[!(mds$marca1 %in% rownames(as.matrix(sort(-table(mds$marca1))[1:20])))] <- "OTRA"
+
+# muni <- st_read("/Users/fernandoair/Library/CloudStorage/Dropbox/varios/TesisPedro/Shapefile/Municipios_ETRS89_30N/Municipios_ETRS89_30N.shp",quiet=TRUE)
+
+muni <- st_read(here("shp/RentaMedia_2020.shp"), quiet =TRUE)
+muni <- muni[,c(7,12)]
+names(renta)[1] <- "cine"
+
+
+
+muni <- muni[c("CODIGO")]
+names(muni)[1] <- "cine" 
+muni <- merge(muni,mds,by="cine",all.x=TRUE)
+st_write(muni,"borratodos.shp",append=FALSE)
+```
+
+
+```{r}
+# load("coches.RData")
+library(sf)
+library(openxlsx)
+library(here)
+library(dplyr)
+library(stringr)
+muni <- st_read("/Users/fernandoair/Library/CloudStorage/Dropbox/varios/TesisPedro/Shapefile/Municipios_ETRS89_30N/Municipios_ETRS89_30N.shp",quiet=TRUE)
+muni <- muni[c("CODIGO")]
+names(muni)[1] <- "cine" 
+Pob <- read.xlsx(here("DatosINE/Poblacion Municipios España 2022.xlsx"))
+muni <- merge(muni,Pob,by="cine",all.x=TRUE)
+renta <- st_read(here("shp/RentaMedia_2020.shp"), quiet =TRUE)
+renta <- renta[,c(7,12)]
+names(renta)[1] <- "cine"
+muni <- merge(muni,st_drop_geometry(renta),by="cine",all.x=TRUE)
+rm(Pob,renta)
+```
+
+```{r todos}
+coches.t <- coches %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.t.cine <- coches.t %>% group_by(cine) %>% summarize(n=n())
+muni <- merge(muni,coches.t.cine,by="cine",all.x = TRUE)
+muni[is.na(muni)] <- 0
+names(muni)[5] <- "nt"
+muni$todosPob <- muni$nt*1000/muni$Pob22
+muni <- muni[muni$Pob22!=0,]
+muni <- muni[muni$rta_nt_med != 0,]
+muni.1000 <- muni[muni$Pob22 > 999,]
+```
+
+```{r}
+muni$prov <- substr(muni$cine,1,2)
+muni.mu <- muni[muni$prov == "30",]
+muni.mu$ratio <- muni.mu$todosPob/muni.mu$rta_nt_med
+st_write(muni.mu,"borratodos.shp",append=FALSE)
+
+```
+
+
+```{r}
+coches.ulea <- coches[coches$cine=="30040",]
+coches.ulea$one <- 1
+coches.ulea$mm <- str_squish(paste(coches.ulea$marca,coches.ulea$modelo))
+aa <- xtabs(one ~ mm + carroceria, data=coches.ulea)
+attr(aa, "class") <- NULL
+```
+
+```{r}
+coches.ojos <- coches[coches$cine=="30031",]
+coches.ojos <- coches.ojos %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.ojos$one <- 1
+table(coches.ojos$año)
+aa <- xtabs(one ~ año + provincia.veh, data=coches.ojos)
+
+
+coches.ojos$mm <- str_squish(paste(coches.ojos$marca,coches.ojos$modelo))
+aa <- xtabs(one ~ mm + carroceria, data=coches.ulea)
+attr(aa, "class") <- NULL
+```
+
+```{r}
+coches$mm <- str_squish(paste(coches$marca,coches$modelo))
+coches$one <- 1
+coches.BA <- coches[coches$carroceria=="BA  ",]
+aa <- xtabs(one ~ mm + carroceria, data=coches.BA)
+```
+
+```{r}
+coches.mu <- coches[coches$provincia.mat =="MU",]
+coches.mu <- coches.mu %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.mu$one <- 1
+table(coches.mu$año)
+xtabs(one ~ marca + año, data = coches.mu)
+
+```
+
+
+## Donde triunfan los descaporables
+
+Carroceria BA o BE = pickup
+
+Los descapotables desempeñan un papel significativo en el sector automovilístico, no solo por su estética y estilo distintivos, sino también por la experiencia de conducción única que ofrecen. Estos vehículos representan la libertad y el disfrute de la carretera en su forma más pura, permitiendo a los conductores conectar con su entorno de una manera incomparable. Además de su atractivo emocional, los descapotables a menudo sirven como escaparate tecnológico y de diseño para las marcas automotrices, demostrando su capacidad de innovación y artesanía. Históricamente, han sido símbolos de estatus y lujo, capturando la imaginación de conductores y entusiastas desde hace décadas. Más allá de su imagen glamorosa, los descapotables también desempeñan un papel en la evolución hacia la sostenibilidad en el sector automotriz, con avances en materiales más ligeros y motores más eficientes. En resumen, los descapotables no solo son vehículos, sino iconos que trascienden la mera funcionalidad, moldeando la cultura automovilística y elevando la experiencia de conducción a un nivel superior.
+
+```{r descapotables}
+
+# load("coches.RData")
+# Descapotables
+coches.d <- coches[coches$carroceria=="AE  ",]
+coches.d <- coches.d %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.d.cine <- coches.d %>% group_by(cine) %>% summarize(n=n())
+```
+
+Básicamente, un coche coupé, nuevo o de segunda mano y ocasión, es un coche con una carrocería cerrada que es el resultado de recortar un coche sedán. 
+
+El propio término “coupé”, de origen francés, nos indica qué tipo de coche es el coupé. Significa “cortado”. Este recorte hace que los coches coupé sean coches con una alta deportividad. 
+
+La palabra “coupé” tuvo su origen en los coches de caballos, cuyo habitáculo quedaba cortado, dejando al conductor y al acompañante descubiertos delante, mientras que la cabina de los ocupantes quedaba protegida.
+
+
+
+
+
+
+```{r coupe}
+library(dplyr)
+library(stringr)
+# load("coches.RData")
+# Descapotables
+coches.c <- coches[coches$carroceria=="AD  ",]
+coches.c <- coches.c %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+coches.c.cine <- coches.c %>% group_by(cine) %>% summarize(n=n())
+muni <- merge(muni,coches.c.cine,by="cine",all.x = TRUE)
+muni$coupePob <- muni$n.y*1000/muni$Pob22
+
+```
+
+
+
+```{r}
+
+muni <- merge(muni,coches.d.cine,by="cine",all.x = TRUE)
+muni[is.na(muni)] <- 0
+st_write(muni,"borratodos.shp",append=FALSE)
+```
+
+```{r}
+
+muni$cochesPob <- muni$n.x*1000/muni$Pob22
+```
+
+```{r}
+
+```
+

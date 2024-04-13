@@ -1,0 +1,787 @@
+---
+title: "¿Cuál es el coche más vendido en tu municipio?"
+subtitle: "Analizamos las ventas de más de 10 millones de turismos en España"
+author: 
+  - name: Fernando López Hernández
+    affiliation: Catedrático de Universidad. Universidad Politécnica de Cartagena
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    number_sections: FALSE
+---
+
+```{=html}
+<style type="text/css">
+  body{
+  font-size: 12pt;
+  text-align: justify
+}
+h1.title {
+  color: DarkRed;
+}
+h1 { /* Header 1 */
+  color: DarkBlue;
+}
+h2 { /* Header 2 */
+  color: DarkBlue;
+}
+h3 { /* Header 3 */
+  color: DarkBlue;
+}
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+En este artículo se analizan las ventas de más de 10 millones de turismos vendidos en España en los últimos 10 años, tanto nuevos como de segunda mano.
+
+> **Analizamos más de 10 millones de turismos vendidos en España durante los últimos nueve años 2015-23**
+
+En los últimos años, el mercado automotriz en España ha experimentado una evolución significativa, reflejando tanto las tendencias económicas como las preferencias de los consumidores. En un país conocido por su diversidad geográfica y cultural, el panorama de la industria del automóvil ha sido objeto de un análisis detallado, revelando datos sorprendentes sobre las marcas de coches más frecuentes adquiridas en cada municipio español. A lo largo de la última década, hemos sido testigos de una compleja interacción entre diversos factores socioeconómicos y demográficos que han influido en las decisiones de compra de los conductores españoles. En este artículo, exploraremos las tendencias emergentes en la elección de marcas de coches en los municipios de España, ofreciendo una visión panorámica de los vehículos preferidos por los consumidores en diferentes regiones del país.
+
+```{r load data, warning=FALSE, message=FALSE, echo=FALSE}
+library(feather)
+library(sf)
+library(dplyr)
+library(leaflet)
+library(leaflet.extras)
+library(leaflegend)
+library(stringr)
+library(here)
+library(tictoc)
+library(openxlsx)
+coches <- read_feather("cochesf")
+```
+
+```{r check data, warning=FALSE, message=FALSE, echo=FALSE}
+# coches.t <- coches %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+# Turismos (40) y todo terrenos (25)
+coches.t <- coches %>% filter(str_detect(tipo,"40|25"))
+coches.t$marca[coches.t$marca=="FORD CNG TECHNIK"] <- "FORD"
+coches.t$marca[coches.t$marca=="FORD-CNG-TECHNIK"] <- "FORD"
+coches.t$marca[coches.t$marca=="CITROËN"] <- "CITROEN"
+coches.t$marca[coches.t$marca=="OLEOPEL"] <- "OPEL"
+coches.t$marca[coches.t$marca=="REMOLQUES RAMIREZ"] <- "OPEL"
+coches.t$marca[coches.t$marca=="M.G."] <- "MG"
+coches.t$marca[coches.t$marca=="AVELING BARFORD"] <- "FORD"
+coches.t$marca[coches.t$marca=="FERROSITE"] <- "CITROEN"
+coches.t$marca[coches.t$marca=="MOTO STAR"] <- "FORD"
+coches.t$marca[coches.t$marca=="ALPINE"] <- "RENAULT"
+coches.t$marca[str_detect(coches.t$marca,"SMART")] <- "SMART"
+coches.t$marca[str_detect(coches.t$marca,"FIAT")] <- "FIAT"
+coches.t$marca[str_detect(coches.t$marca,"PEUGEOT")] <- "PEUGEOT"
+coches.t$marca[str_detect(coches.t$marca,"MERCEDES")] <- "MERCEDES-BENZ"
+coches.t$marca[str_detect(coches.t$marca,"BMW")] <- "BMW"
+coches.t$marca[str_detect(coches.t$marca,"VOLKSWAGEN")] <- "VOLKSWAGEN"
+coches.t$marca[str_detect(coches.t$marca,"JAGUAR")] <- "JAGUAR"
+coches.t$marca[str_detect(coches.t$marca,"TESLA")] <- "TESLA"
+coches.t$marca[str_detect(coches.t$marca,"HYUNDAI")] <- "HYUNDAI"
+coches.t$marca[str_detect(coches.t$marca,"RENAULT")] <- "RENAULT"
+coches.t$marca[str_detect(coches.t$marca,"KIA")] <- "KIA"
+coches.t$marca[str_detect(coches.t$marca,"NISSAN")] <- "NISSAN"
+coches.t$marca[str_detect(coches.t$marca,"SEAT")] <- "SEAT"
+coches.t$marca[str_detect(coches.t$marca,"FRUA PORSCHE")] <- "PORSCHE"
+coches.t$marca[str_detect(coches.t$marca,"JIMINI")] <- "MINI"
+coches.t$marca[str_detect(coches.t$marca,"BOECKAMANN")] <- "FIAT"
+coches.t$marca[str_detect(coches.t$marca,"MG")] <- "MG"
+```
+
+
+```{r, echo=FALSE}
+coches.t$modelo[str_detect(coches.t$modelo,"SANDERO")] <- "SANDERO"
+coches.t$modelo[str_detect(coches.t$modelo,"IBIZA")] <- "IBIZA"
+coches.t$modelo[str_detect(coches.t$modelo,"GOLF")] <- "GOLF"
+coches.t$modelo[str_detect(coches.t$modelo,"CLIO")] <- "CLIO"
+coches.t$modelo[str_detect(coches.t$modelo,"POLO")] <- "POLO"
+coches.t$modelo[str_detect(coches.t$modelo,"CORSA")] <- "CORSA"
+coches.t$modelo[str_detect(coches.t$modelo,"FOCUS")] <- "FOCUS"
+coches.t$modelo[str_detect(coches.t$modelo,"MEGANE")] <- "MEGANE"
+coches.t$modelo[str_detect(coches.t$modelo,"COROLLA")] <- "COROLLA"
+coches.t$modelo[str_detect(coches.t$modelo,"TIGUAN")] <- "TIGUAN"
+coches.t$modelo[str_detect(coches.t$modelo,"CAPTUR")] <- "CAPTUR"
+coches.t$modelo[str_detect(coches.t$modelo,"ARONA")] <- "ARONA"
+coches.t$modelo[str_detect(coches.t$modelo,"FIESTA")] <- "FIESTA"
+coches.t$modelo[str_detect(coches.t$modelo,"YARIS")] <- "YARIS"
+coches.t$modelo[str_detect(coches.t$modelo,"SPORTAGE")] <- "SPORTAGE"
+coches.t$modelo[str_detect(coches.t$modelo,"QASHQAI")] <- "QASHQAI"
+coches.t$modelo[str_detect(coches.t$modelo,"C-HR")] <- "C-HR"
+coches.t$modelo[str_detect(coches.t$modelo,"FIAT 500")] <- "FIAT 500"
+coches.t$modelo[str_detect(coches.t$modelo,"TUCSON")] <- "TUCSON"
+coches.t$modelo[str_detect(coches.t$modelo,"RAV4")] <- "RAV4"
+coches.t$modelo[str_detect(coches.t$modelo,"AURIS")] <- "AURIS"
+coches.t$modelo[str_detect(coches.t$modelo,"TUCSON")] <- "TUCSON"
+coches.t$modelo[str_detect(coches.t$modelo,"TOURAN")] <- "TOURAN"
+coches.t$modelo[str_detect(coches.t$modelo,"JUKE")] <- "JUKE"
+coches.t$modelo[str_detect(coches.t$modelo,"MICRA")&(coches.t$marca=="NISSAN")] <- "MICRA"
+coches.t$modelo[str_detect(coches.t$modelo,"FIAT TIPO")&(coches.t$marca=="FIAT")] <- "TIPO"
+coches.t$mm <- str_squish(paste(coches.t$marca,coches.t$modelo))
+```
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# Coches docimiliados en Murcia (pueden estar matriculados en otra provincia)
+coches.t.mu <- coches.t[coches.t$provincia.veh=="MU",]
+```
+
+
+## La carrera de las marcas. Los asiáticos cambian el mercado
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# names(sort(-table(coches.t$marca)))[1:15]
+aa <- xtabs(one ~ marca + año , data = coches.t)
+attr(aa, "class") <- NULL
+aa <- aa[(rownames(aa) %in% names(sort(-table(coches.t$marca)))[1:15]),46:54]
+
+aa.mu <- xtabs(one ~ marca + año , data = coches.t.mu)
+attr(aa.mu, "class") <- NULL
+aa.mu <- aa.mu[(rownames(aa.mu) %in% names(sort(-table(coches.t.mu$marca)))[1:15]),5:13]
+```
+
+
+Aunque Volkswagen se mantiene como un claro lider en ventas, hay un importante cambio de tendencia, con el fuerte crecimiento de marcas asiáticas como Toyota, Hyundai o Kia, a la vez que otras marcas tradicionales como Ford u Opel pierden posiciones en el ranking, principalmente en los últimos cinco años.
+
+> **Toyota, Hyundai y Kia tienen un crecimiento explosivo**
+
+```{=html}
+<div class="flourish-embed flourish-chart" data-src="visualisation/17360922"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+```
+
+
+## Ranking de ventas España vs Murcia
+
+En el año 2023 fue Volkwagen la marca más vendida tanto en España como en Murcia con una cuota entorno al 10-12%. La principla diferencia emerge con la marca Mercedes. En la Región ocupa la segunda posición en el ranking con un 10,4% de las ventas mientras que a nivel nacional tiene una cuota del 7,1% y ocupa la octava posición en el ranking de ventas.
+
+```{=html}
+<div class="flourish-embed flourish-radar" data-src="visualisation/17482806"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+```
+
+# El subidón de las marcas chinas
+
+El mercado automovilístico no para de evolucionar. Los "asiáticos" cambiaron el mercado en la última década pero un nuevo horizonte asoma con las marcas chinas que literalmente están desafiando la hegemonía de las marcas tradicionales. Pasando de apenas unos cientos de turismos vendidos hace tres años a tener mas de 40.000 coches circulando por España en 2023.
+
+```{r chinos, echo = FALSE, eval = FALSE}
+coches.t.chinos <- coches.t[str_detect(coches.t$marca,"XPENG|SWM|JAC|DR3|GWM|BYD|MG|DFSK|AIWAYS|MAXUS|NETAAUTO|SERES|VOYAH|OMODA|YUDO|HONGQI|INVICTA|LYNK|JAECOO"),]
+# table(coches.t.chinos$marca)
+mchinos <- xtabs(one ~ marca + año, data = coches.t.chinos)
+attr(mchinos, "class") <- NULL
+coches.t.chinos.mu <- coches.t.chinos[coches.t.chinos$provincia.mat=="MU",]
+mchinos <- xtabs(one ~ marca + año, data = coches.t.chinos.mu)
+attr(mchinos, "class") <- NULL
+```
+
+> **Con diferencia la marca MG, Morris Garage revivida por los chinos de SAIC (Shanghai Automobile Industry Corporation) como fabricante de automóviles eléctricos e híbridos enchufables**
+
+> **Marcas de autmóviles hoy muy poco conocidas XPENG SWM, JAC, GWM, BYD, MG, DFSK,OMODA, MAXUS, AIWAYS, HONGQI han venido a ocupar su sitio en el mercado**
+
+> **MG cuenta con casi mil turismos circulando por la Región y mantiene un crecimiento explosivo**
+
+```{=html}
+<iframe title="Ranking de preferencias de marcas 2023" aria-label="Tabla" id="datawrapper-chart-QmymW" src="https://datawrapper.dwcdn.net/QmymW/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="389" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+# ¿Cuál es marca es la más vendida en mi municipio?
+
+Los gustos cambian de región a región o incluso de municipio en municipio. También la oferta es distinta en una gran ciudad que en un pequeño pueblo donde no toda la oferta está disponible. Hemos elegido en cada uno de los más de 8000 municipios españoles cual es la marca que más turismos ha vendido en el periodo analizado (15-23).
+
+> **Hay una enorme diversidad en el elección de los consumidores. El territorio español aparece como un ajedrezado de colores con pocas regiones homógéneas**
+
+```{r preparando mapa,  warning=FALSE, message=FALSE, echo=FALSE}
+mds <- coches.t %>%
+  group_by(cine) %>%
+  summarize(total = sum(one, na.rm = TRUE),
+            marca1 = names(which.max(table(marca))),
+            cmarca1 = sum(marca==names(which.max(table(marca)))),
+            marca2 = names(sort(-table(marca))[2]),
+            cmarca2 = sum(marca == marca2),
+            modelo1 = names(which.max(table(mm))),
+            cmodelo1 = sum(mm == modelo1),
+            modelo2 = names(sort(-table(mm))[2]),
+            cmodelo2 = sum(mm == modelo2))
+
+mds$marca11 <- mds$marca1
+mds$marca11[!(mds$marca1 %in% rownames(as.matrix(sort(-table(mds$marca1))[1:14])))] <- "OTRA"
+mds$marca21 <- mds$marca2
+mds$marca21[!(mds$marca2 %in% rownames(as.matrix(sort(-table(mds$marca2))[1:14])))] <- "OTRA"
+
+muni <- st_read("shp/Municipios_ETRS89_30N.shp",quiet=TRUE) %>% sf::st_transform('+proj=longlat +datum=WGS84')
+muni <- muni["CODIGO"]
+names(muni)[1] <- "cine"
+muni2 <- st_read(here("shp/output/RentaMedia_2020.shp"), quiet =TRUE) %>% sf::st_transform('+proj=longlat +datum=WGS84')
+names(muni2)[7] <- "cine"
+
+muni <- merge(muni,st_drop_geometry(muni2[,c(3,7,12)]),by="cine",all.x=TRUE)
+rm(muni2)
+muni <- merge(muni,mds,by="cine",all.x=TRUE)
+muni$marca1[is.na(muni$marca1)] <- "SIN DATOS"
+muni$marca11[is.na(muni$marca11)] <- "SIN DATOS"
+pob <- read.xlsx("DatosINE/Poblacion Municipios España 2022.xlsx")
+muni <- merge(muni,pob[c("cine","Pob22")],by="cine",all.x=TRUE)
+muni$totalpc <- muni$total*1000/muni$Pob22
+rm(pob)
+# st_write(muni,"borratodos.shp",append=FALSE)
+```
+
+```{r mapa marcas, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+cm <- c("red","green", "yellow", "blue", "orange", 
+        "#8E44AD", "#34495E", "gray","#FF00BF" , "#F39C12", 
+        "#EC7063", "#1ABC9C", "#F1C40F", "#FF9FF3","black")
+
+cm <- c("#FF5733", "#4682B4", "gray", "#BA55D3", "#FFD700", "#00CED1", "#FF69B4", "#7FFF00", "#9370DB", "yellow", "#40E0D0", "#800080", "#FFA07A", "#008080", "black")
+
+mylabels <- c(names(sort(-table(muni$marca1)))[1:14],"OTRA")
+muni$marca1 <- as.factor(muni$marca1)
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni[muni$marca1==mylabels[i],]
+}
+myweight = .5
+
+map <- leaflet(muni,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = -3.7033, lat = 40.4169, zoom = 6.4) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca2,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+# library(htmltools)
+# browsable(
+#     tagList(
+#         tags$style(".leaflet-control-layers-expanded{color: red}"),        
+#     )
+# )
+map
+```
+
+A pesar de la diversidad de alternativas a la hora de comprar un coche, Dacia aparece como la marca con mayor frecuencia de ventas en muchos de los municipios españoles. En 1.731 municipios aparece como la marca con más ventas y la segunda más vendida en 1.093 municipios.
+
+> **Dacia es la marca con una mayor frecuencia de ventas en el sur de España, principalmente en Andalucía pero salpica todo el territorio nacional**.
+
+Muy alejada de Dacia está Peugeot, la marca más vendida en 997 municipios (la segunda más vendida en 905 municipios), Citroen en 790 (la segunda más vendida en 859 municipios), Volkwagen 689 (la segunda más vendida en 683 municipios) y Renault 623 completan el top 5.
+
+## Madrid, Barcelona, Valencia y Valladolid
+
+A pesar de la diversidad energen algunas agrupaciones de municipios que muestran las mismas preferencias. Madrid y su área metropolinata tiene claras peferencias por la marca Toyota.
+
+```{r mapa marcas madrid, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+# mylabels <- c(names(sort(-table(muni$marca1)))[1:14],"OTRA")
+# muni$marca1 <- as.factor(muni$marca1)
+muni.ma <- muni[substr(muni$cine,1,2)=="28",]
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni.ma[muni.ma$marca1==mylabels[i],]
+}
+myweight = .5
+
+map <- leaflet(muni.ma,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = -3.7033, lat = 40.4169, zoom = 8.2) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+map
+```
+
+> **Valladolid y su entorno muestra claras preferencias por Renault. La proximidad a la fábrica de Renault es la causa de este cluster**
+
+```{r mapa marcas valladolid, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE, fig.cap="detalle ventas Valladolid"}
+muni.ma <- muni[substr(muni$cine,1,2)=="47",]
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni.ma[muni.ma$marca1==mylabels[i],]
+}
+map <- leaflet(muni.ma,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = -4.727, lat = 41.64, zoom = 8.2) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca2,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+map
+```
+
+> **La provincia de Barcelona es un ajedrezado pero predominan Toyota, Seat y Dacia como primeras marcas. La proximidad a la fábrica de Martorell se pone de relieve.**
+
+```{r mapa marcas barcelona, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+# mylabels <- c(names(sort(-table(muni$marca1)))[1:14],"OTRA")
+# muni$marca1 <- as.factor(muni$marca1)
+
+muni.ma <- muni[substr(muni$cine,1,2)=="08",]
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni.ma[muni.ma$marca1==mylabels[i],]
+}
+map <- leaflet(muni.ma,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = 2.0365, lat = 41.425, zoom = 8.2) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca2,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+# library(htmltools)
+# browsable(
+#     tagList(
+#         tags$style(".leaflet-control-layers-expanded{color: red}"),        
+#     )
+# )
+map
+```
+
+> **Valencia y la fábrica de Ford**
+
+```{r mapa marcas valencia, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+# mylabels <- c(names(sort(-table(muni$marca1)))[1:14],"OTRA")
+# muni$marca1 <- as.factor(muni$marca1)
+
+muni.ma <- muni[substr(muni$cine,1,2)=="46",]
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni.ma[muni.ma$marca1==mylabels[i],]
+}
+map <- leaflet(muni.ma,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>% setView(lng =  -0.657, lat = 39.6353, zoom = 8) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca2,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+# library(htmltools)
+# browsable(
+#     tagList(
+#         tags$style(".leaflet-control-layers-expanded{color: red}"),        
+#     )
+# )
+map
+```
+
+# ¿Qué modelo es el más vendido?
+
+Los modelos de la marca **Dacia** han logrado destacar entre la enorme variedad de alternativas en el mercado y capturar la atención de los consumidores. **Dacia Sandero y Dacia Duster** son los dos modelos que encabezan el ranking de los más vendidos en un grán número de municipios españoles.
+
+> **Dacia Sandero y Dacia Duster encabezan el ranking de los más vendidos en muchos de los municipios españoles**
+
+```{r map modelos, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+cm <- c("#FFC3A0", "#FFDEA0", "#FFFB96", "#C1FFA6", "#A6FFC1",
+                    "#A6FFEB", "#A0E6FF", "#A0BBFF", "#BDA0FF", "#EBA6FF",
+                    "#FFA6F2", "#FFA6D2", "#FFA6B2", "#FFA699")
+
+
+mylabels <- names(sort(-table(muni$modelo1)))[1:14]
+muni$modelo1 <- as.factor(muni$modelo1)
+munimo <- list() 
+for (i in 1:14){
+munimo[[i]] <- muni[muni$modelo1==mylabels[i],]
+}
+myweight = .5
+map <- leaflet(muni,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = -3.7033, lat = 40.4169, zoom = 6) %>%
+  addTiles() 
+for (i in 1:14){
+map <- map %>%
+  addPolygons(data = munimo[[i]], popup = paste("<b>Municipio:</b>",munimo[[i]]$nombre,"<br>",
+                                          "Total:",munimo[[i]]$total,"<br>",
+                                          "Marca:",munimo[[i]]$modelo1,"<br>",
+                                          "Num:",munimo[[i]]$cmodelo1,"<br>",
+                                          "Marca2:",munimo[[i]]$modelo2,"<br>",
+                                          "Num:",munimo[[i]]$cmodelo2),
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = 1,
+              fillOpacity = 0.7,
+              group = mylabels[i])   
+}
+map <- map %>%
+  # Layers control
+  addLayersControl(overlayGroups = mylabels,
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:14])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:14],
+            labels = mylabels,
+            title = "Moda",
+            opacity = 1) %>%
+  addProviderTiles(providers$CartoDB.Positron)
+
+# library(htmltools)
+# browsable(
+#     tagList(
+#         tags$style(".leaflet-control-layers-expanded{color: red}"),        
+#     )
+# )
+map
+```
+
+
+
+## Consulta la marca y modelo más vendido en tu código postal
+
+```{r, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+mdscp <- coches.t %>%
+  group_by(cp) %>%
+  summarize(total = sum(one, na.rm = TRUE),
+            marca1 = names(which.max(table(marca))),
+            cmarca1 = sum(marca==names(which.max(table(marca)))),
+            marca2 = names(sort(-table(marca))[2]),
+            cmarca2 = sum(marca == marca2),
+            modelo1 = names(which.max(table(mm))),
+            cmodelo1 = sum(mm == modelo1),
+            modelo2 = names(sort(-table(mm))[2]),
+            cmodelo2 = sum(mm == modelo2))
+# write.xlsx(mdscp,"mdscp.xlsx")
+```
+
+```{r cp, warning = FALSE, echo = FALSE, message = FALSE}
+library(DT)
+datatable(head(mdscp ,dim(mdscp)[1]),rownames = FALSE, width="70%",
+          caption = 'Turismos vendidos 2015-23',colnames=c("CP", "Total", "Marca 1", "Nª Marca 1",
+                                                     "Marca 2", "Nª Marca 2","Modelo 1", "Nª Modelo 1",
+                                                     "Modelo 2", "Nª Modelo 2"),
+          options = list(autoWidth = FALSE, pageLength = 10))
+```
+
+
+## Marca favorita y renta de los consumidores
+
+Una de los factores que mas relación tienen con la preferencias de los consumidores es el nivel de renta. Con la información que suministra el INE sobre la renta per cápita a nivel municipal se ha promediado la renta media de aquellos municipios que aparecen con la misma primera marca (se han considerado solo aquellos municipios en los que almenos se vendieron 50 coches).
+
+> **Toyota aparece como la marca preferida en aquellos muncipios con mayor nivel de renta. La influencia de las grandes capitales como Madrid y Barcelona se pone de manifiesto**
+
+
+```{r,  warning=FALSE, message=FALSE, echo=FALSE}
+muni.100 <- muni %>% filter(cmarca1>50)
+a <- st_drop_geometry(muni.100) %>% group_by(marca11) %>% summarize(n=n(),
+                                                                    mean = mean(rta_nt_med), 
+                                                                    q1 = quantile(rta_nt_med,.25),
+                                                                    me = median(rta_nt_med),
+                                                                    q3 = quantile(rta_nt_med,.75))
+b <- st_drop_geometry(muni.100) %>% group_by(marca21) %>% summarize(n=n(),
+                                                                    mean = mean(rta_nt_med), 
+                                                                    q1 = quantile(rta_nt_med,.25),
+                                                                    me = median(rta_nt_med),
+                                                                    q3 = quantile(rta_nt_med,.75))
+
+```
+
+```{=html}
+<iframe title="Renta per cápita y marca preferida" aria-label="Gráfico de puntos" id="datawrapper-chart-Yku4d" src="https://datawrapper.dwcdn.net/Yku4d/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="388" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+> **Los municipios con menor nivel de renta eligen Dacia. Pero también Mercedes, como una marca que denota cierto status**
+
+## Marca vs Renta, en profundidad
+
+Profundizando en la relación entre renta y marca preferida. Los consumidores con rentas altas tienen mayor variedad en la elección, posiblemente por la mayor ofereta disponible. El 20% de los municipios con rentas altas eligieron marcas pocos frecuentes en el mercado (OTRAS) frente al 16,4% en municipios con rentas bajas. El 6% de las ventas de Mercedes se realizaron en municipios con rentas bajas frente al 4,2% de rentas medias.
+
+```{r marca vs renta,  warning=FALSE, message=FALSE, echo=FALSE}
+marca <- xtabs(one ~ cine + marca, data=coches.t)
+attr(marca, "class") <- NULL
+marcas.top10 <- rownames(as.matrix(sort(-table(coches.t$marca))[1:19]))
+marcas.notop10 <- rownames(as.matrix(sort(-table(coches.t$marca))[15:length(unique(coches.t$marca))]))
+marca0 <- as.data.frame(marca[,marcas.top10])
+marca0$cine <- rownames(marca0)
+marca0$OTRA <- rowSums(marca[,marcas.notop10])
+muni <- merge(muni,marca0,by="cine",all.x=TRUE) 
+muni0 <- muni[!is.na(muni$rta_nt_med),]
+muni0 <- muni0[muni0$rta_nt_med != 0,]
+muni0 <- st_drop_geometry(muni0)
+muni0$qrenta <- cut(muni0$rta_nt_med,c(0,quantile(muni0$rta_nt_med,c(.2,.4,.6,.8)),100000))
+marca <- muni0 %>% group_by(qrenta) %>% summarise_if(is.numeric, sum, na.rm = TRUE)
+marca <- marca[,-c(2:5)]
+marca1 <- marca[2:21]/rowSums(marca[2:21])
+```
+
+```{r marca vs renta murcia,  warning=FALSE, message=FALSE, echo=FALSE}
+coches.t.mu <- coches.t[coches.t$provincia.veh=="MU",]
+marca <- xtabs(one ~ cine + marca, data=coches.t.mu)
+attr(marca, "class") <- NULL
+marcas.top10 <- rownames(as.matrix(sort(-table(coches.t.mu$marca))[1:19]))
+marcas.notop10 <- rownames(as.matrix(sort(-table(coches.t.mu$marca))[15:length(unique(coches.t.mu$marca))]))
+marca0 <- as.data.frame(marca[,marcas.top10])
+marca0$cine <- rownames(marca0)
+marca0$OTRA <- rowSums(marca[,marcas.notop10])
+muni <- merge(muni,marca0,by="cine",all.x=TRUE) 
+muni0 <- muni[!is.na(muni$rta_nt_med),]
+muni0 <- muni0[muni0$rta_nt_med != 0,]
+muni0 <- st_drop_geometry(muni0)
+muni0$qrenta <- cut(muni0$rta_nt_med,c(0,quantile(muni0$rta_nt_med,c(.2,.4,.6,.8)),100000))
+marca <- muni0 %>% group_by(qrenta) %>% summarise_if(is.numeric, sum, na.rm = TRUE)
+marca <- marca[,-c(2:5)]
+marca1 <- marca[2:21]/rowSums(marca[2:21])
+```
+
+Analizando la renta y la marca preferida se aprecian las siguientes diferencias
+
+0.  Hay una enorme diversidad de marcas. El grupo OTRA es el que acumula mayor porcentaje en todos los rangos de renta
+
+1.  Rentas altas prefieren marcas OTRA en mayor proporción. Puede deberse a que la oferta en mucho mas variada allí donde hay mayor renta. Por ejemplo en Madrid hay una enorme diversidad de marcas. Al contrario ocurre con rentas bajas
+
+2.  La clase media (entre percentiles 40 y 60) prefiere Peugeot
+
+3.  Dacia es preferido por rentas bajas
+
+4.  Mercedes es tb ppreferido por rentas bajas
+
+```{=html}
+<iframe title="Renta y marca preferida" aria-label="Barras apiladas" id="datawrapper-chart-ksiPZ" src="https://datawrapper.dwcdn.net/ksiPZ/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="250" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+## Renta y cilindrada
+
+```{r marca vs renta 2,  warning=FALSE, message=FALSE, echo=FALSE}
+coches.t$cilidradaf <- cut(coches.t$cilidrada,c(0,1000,1250,1500,1750,2000,3000,80000))
+marca <- xtabs(one ~ cine + cilidradaf, data=coches.t)
+attr(marca, "class") <- NULL
+# marcas.top10 <- rownames(as.matrix(sort(-table(coches.t$marca))[1:19]))
+# marcas.notop10 <- rownames(as.matrix(sort(-table(coches.t$marca))[15:length(unique(coches.t$marca))]))
+marca0 <- as.data.frame(marca)
+marca0$cine <- rownames(marca0)
+muni <- merge(muni,marca0,by="cine",all.x=TRUE) 
+muni0 <- muni[!is.na(muni$rta_nt_med),]
+muni0 <- muni0[muni0$rta_nt_med != 0,]
+muni0 <- st_drop_geometry(muni0)
+muni0$qrenta <- cut(muni0$rta_nt_med,c(0,quantile(muni0$rta_nt_med,c(.2,.4,.6,.8)),100000))
+marca <- muni0 %>% group_by(qrenta) %>% summarise_if(is.numeric, sum, na.rm = TRUE)
+marca <- marca[,26:32]
+marca1 <- marca/rowSums(marca)
+```
+
+> **Municipios con rentas bajas venden más coches más potentes**
+
+```{=html}
+<iframe title="Renta y cilindrada (cc)" aria-label="Barras apiladas" id="datawrapper-chart-Pha7W" src="https://datawrapper.dwcdn.net/Pha7W/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="214" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+# Diesel o Gasolina. Se invierten las preferencias
+
+La DGT considera 14 tipos de carburantes. Con diferencia son Gasolina, Diesel, Electrícos y Gas Licuado de Petróleo (GLP) los más frecuentes.
+
+> **En apenas 9 años se han invertido las preferencias del consumidor. El 2015 cerca del 70% compró vehículos diesel y en 2023 solo un 22% optó por este carburante**
+
+> **Electricos y GLP ya alcanzan el 8% de las ventas en 2023**
+
+```{r,  warning=FALSE, message=FALSE, echo=FALSE}
+carb <- xtabs(one ~ año + propulsion, data=coches.t)
+attr(carb, "class") <- NULL
+carb.mu <- xtabs(one ~ año + propulsion, data=coches.t.mu)
+attr(carb.mu, "class") <- NULL
+
+```
+
+Al comparar la penetración de los turismos por tipo de carburante entre España y Murcia, se observan claras diferencias. Aunque ambas tendencias van de la mano con un claro cambio en las preferencias del consumidor hacia vehículos de gasolina la penetración de vehículos de gasolina en inferior en la Región al total nacional. En 2023 el 70% de los turismos vendidos fue de gasolina en España frente a un 56,4% en Murcia. Estas diferencias pueden deberse a las restricciones del tráfico que están imponeiendo las grandes capitales y que aún no están vigentes en la Región.
+
+Los turismos con carburantes ecológicos como los eléctricos o los GLP tienen también una menor penetración en la Región aunque mantienen una leve tendencia creciente al igual en el total nacional.
+
+
+```{=html}
+<iframe title="% turismos por tipo de combustible Murcia vs España" aria-label="Interactive line chart" id="datawrapper-chart-vNNjL" src="https://datawrapper.dwcdn.net/vNNjL/2/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="466" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+
+
+<!-- ## Rural vs Urbano -->
+
+<!-- ```{r,  warning=FALSE, message=FALSE, echo=FALSE} -->
+<!-- muni$Pob22f <- cut(muni$Pob22,c(0,1000,5000,150000,100000000)) -->
+<!-- muni$qrenta <- cut(muni$rta_nt_med,c(0,quantile(muni$rta_nt_med,c(.2,.4,.6,.8),na.rm=TRUE),100000)) -->
+<!-- muni$one <- 1 -->
+<!-- xtabs(one ~ qrenta + Pob22f,data = muni) -->
+
+<!-- marca <- xtabs(one ~ cine + marca, data=coches.t) -->
+<!-- attr(marca, "class") <- NULL -->
+<!-- marcas.top10 <- rownames(as.matrix(sort(-table(coches.t$marca))[1:19])) -->
+<!-- marcas.notop10 <- rownames(as.matrix(sort(-table(coches.t$marca))[20:length(unique(coches.t$marca))])) -->
+<!-- marca0 <- as.data.frame(marca[,marcas.top10]) -->
+<!-- marca0$cine <- rownames(marca0) -->
+<!-- marca0$OTRA <- rowSums(marca[,marcas.notop10]) -->
+<!-- muni <- merge(muni,marca0,by="cine",all.x=TRUE)  -->
+<!-- muni0 <- muni[!is.na(muni$rta_nt_med),] -->
+<!-- muni0 <- muni0[muni0$rta_nt_med != 0,] -->
+<!-- muni0 <- st_drop_geometry(muni0) -->
+<!-- # muni0$qrenta <- cut(muni0$rta_nt_med,c(0,quantile(muni0$rta_nt_med,c(.2,.4,.6,.8)),100000)) -->
+<!-- muni$Pob22f <- cut(muni$Pob22,c(0,1000,5000,150000,100000000)) -->
+
+<!-- marca <- muni0 %>% group_by(Pob22f) %>% summarise_if(is.numeric, sum, na.rm = TRUE) -->
+<!-- marca <- marca[,-c(2:8)] -->
+<!-- marca1 <- marca[2:21]/rowSums(marca[2:21]) -->
+<!-- ``` -->
+
+## Municipios que son 'Paraísos fiscales' para coches
+
+> **Algunos municipios con poca población tienen un alto porcentaje de turismos per cápita. En algunos casos se trata de municipios con bajos impuestos que permiten a ciudadanos y empresas con grandes flotas de vehículos ahorrar costes**
+
+
+Éxodo de automovilistas hacia "paraísos fiscales"
+
+1.  Hay relación entre renta y núm turismos matriculados percápita. Un buen número de municipios destacan con rentas medias-baja  con un desproporcinado número de turismos percapita.
+
+<https://as.com/actualidad/sociedad/el-pueblo-de-madrid-con-28000-coches-matriculados-y-solo-577-habitantes-n/>
+
+<!-- <https://serviciostelematicosext.hacienda.gob.es/SGFAL/ConsultaTipos/aspx/listado_municipiosm.aspx> -->
+
+```{r,  warning=FALSE, message=FALSE, echo=FALSE}
+muni.x <- muni[muni$Pob22 > 500,] 
+muni.x <- muni.x[muni.x$total > 5,] 
+# plot(log(muni.x$rta_nt_med),log(muni.x$totalpc),ylim=c(0,15))
+# summary(lm(log(muni.x$totalpc) ~ (muni.x$rta_nt_med) + log(Pob22),data = muni.x))
+# write.xlsx(st_drop_geometry(muni.x[,c("nombre","Pob22","totalpc","rta_nt_med")]),"borra.xlsx")
+```
+
+```{=html}
+<iframe title="[ Insert title here ]" aria-label="Diagrama de dispersión" id="datawrapper-chart-gi0n9" src="https://datawrapper.dwcdn.net/gi0n9/1/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="389" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+# Ojos y Ulea
+
+
+```{r, echo = FALSE, warning=FALSE, eval=FALSE}
+muni$prov <- substr(muni$cine,1,2)
+muni.mu <- muni[muni$prov=="30",]
+muni.mu$vehab <- muni.mu$total*1000/muni.mu$Pob22
+vehab <- cbind(muni.mu$nombre,as.numeric(muni.mu$vehab))
+```
+
+```{r, echo = FALSE, warning=FALSE, eval=FALSE}
+coches.t.ojos <- coches.t[coches.t$muni=="OJOS",]
+table(coches.t.ojos$fisica)
+table(coches.t.ojos$provincia.mat)
+table(coches.t.ojos$nuevo)
+coches.t.ulea <- coches.t[coches.t$muni=="ULEA",]
+table(coches.t.ulea$fisica)
+table(coches.t.ulea$provincia.mat)
+table(coches.t.ulea$nuevo)
+write.xlsx(st_drop_geometry(muni.mu[,c("nombre","Pob22","total","rta_nt_med")]),"borra.xlsx")
+
+```
+El Impuesto sobre Vehículos de Tracción Mecánica (IVTM) no es igual en todos los municipios. Este impuesto obligatorio, está sujeto a la discreción de los ayuntamientos que pueden ajustar las tarifas según lo consideren necesario. En el caso de la Región de Murcia, hay notables diferencias entre municipios. Por ejemplo, según los datos que constan el Hacienda (https://serviciostelematicosext.hacienda.gob.es/SGFAL/ConsultaTipos/aspx/listado_municipiosm.aspx), en municipio de Ojós el IVTM era de 71,94€ para turismos de 12 a 15,99 caballos fiscales (en 2021, no consta el dato del año 2.023) o en Ulea ascendía a 88,05€ mientras que en Murcia es de 136,57€ o en Puerto Lumbreras de 143,88€. Estas diferencias generan oportunidades para particulares y empresas. Por ejemplo en Ojós con 500 habitantes aparecen domiciliados 2.367 turismos entre 2015-2023, de los cuales 47 son de particulares y 2320 están a nombre de empresas. Algo similar ocurre en el municipio de Ulea, con 874 habitantes (INE 2023) hay domiciliados más de 6000 turismos, de los cuales 110 son de particulares y 6537 pertenecen a empresas según consta en el portal estadístico de la DGT (microdatos).
+
+En el caso de Ojós, la mayoría de los turismos tienen matrícula de Murcia (1.860) aunque hay 399 turismos que tienen matrícula de Alicante. En el caso de Ulea, 102 están matriculados den Murcia pero 6075 en Valencia. En ambos casos, la mayoría de los vehículos son nuevos y un porcentaje muy pequeño son de compras de turismos de segunda mano.
+
+El siguiente gráfico muestra la relación entre el número de habitantes y el número de coches matriculados
+
+```{=html}
+<iframe title="Población vs Número de Turismos" aria-label="Diagrama de dispersión" id="datawrapper-chart-kxnQX" src="https://datawrapper.dwcdn.net/kxnQX/3/" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="405" data-external="1"></iframe><script type="text/javascript">!function(){"use strict";window.addEventListener("message",(function(a){if(void 0!==a.data["datawrapper-height"]){var e=document.querySelectorAll("iframe");for(var t in a.data["datawrapper-height"])for(var r=0;r<e.length;r++)if(e[r].contentWindow===a.source){var i=a.data["datawrapper-height"][t]+"px";e[r].style.height=i}}}))}();
+</script>
+```
+
+```{r, echo=FALSE}
+coches.t.mg <- coches.t[coches.t$marca=="MG",]
+xtabs(one ~ provincia.mat + año, data=coches.t.mg)
+coches.t.mg <- coches.t[coches.t$marca=="AIWAYS",]
+```
+
+# Datos y metodología
+
+Todos los datos utilizados en este artículo están disponibles en abierto en el portal estadístico de la DGT (https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/categoria.faces). Se descargaron los ficheros con microdatos y se procesaron con el software libre R. El paquete leaflet fue usado para generar los mapas con la cartografía en formato shapefile disponible en abierto en el INE. Los datos de renta percápita y población se obtuvieron de la sección de estadísticas experimentales del INE.
+Los datos sobre impuestos municipales están igualmente disponibles en abierto en los servicios telemáticos del Ministerio de Hacienda (https://serviciostelematicosext.hacienda.gob.es/SGFAL/ConsultaTipos/aspx/listado_municipiosm.aspx)
+

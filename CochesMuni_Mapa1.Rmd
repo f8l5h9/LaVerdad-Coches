@@ -1,0 +1,200 @@
+---
+title: ""
+author:
+output: 
+  html_document:
+    number_sections: FALSE
+---
+
+```{=html}
+<style type="text/css">
+  body{
+  font-size: 12pt;
+  text-align: justify
+}
+h1.title {
+  color: DarkRed;
+}
+h1 { /* Header 1 */
+  color: DarkBlue;
+}
+h2 { /* Header 2 */
+  color: DarkBlue;
+}
+h3 { /* Header 3 */
+  color: DarkBlue;
+}
+</style>
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load data, warning=FALSE, message=FALSE, echo=FALSE}
+library(feather)
+library(sf)
+library(dplyr)
+library(leaflet)
+library(leaflet.extras)
+library(leaflegend)
+library(stringr)
+library(here)
+library(tictoc)
+library(openxlsx)
+coches <- read_feather("cochesf")
+```
+
+```{r check data, warning=FALSE, message=FALSE, echo=FALSE}
+# coches.t <- coches %>% filter(str_detect(tipo,"40|70|22|25|60|7A"))
+# Turismos (40) y todo terrenos (25)
+coches.t <- coches %>% filter((coches$tipo=="40"|coches$tipo=="25")&coches$nuevo=="N")
+coches.t$marca[coches.t$marca=="FORD CNG TECHNIK"] <- "FORD"
+coches.t$marca[coches.t$marca=="FORD-CNG-TECHNIK"] <- "FORD"
+coches.t$marca[coches.t$marca=="CITROËN"] <- "CITROEN"
+coches.t$marca[coches.t$marca=="OLEOPEL"] <- "OPEL"
+coches.t$marca[coches.t$marca=="REMOLQUES RAMIREZ"] <- "OPEL"
+coches.t$marca[coches.t$marca=="M.G."] <- "MG"
+coches.t$marca[coches.t$marca=="AVELING BARFORD"] <- "FORD"
+coches.t$marca[coches.t$marca=="FERROSITE"] <- "CITROEN"
+coches.t$marca[coches.t$marca=="MOTO STAR"] <- "FORD"
+coches.t$marca[coches.t$marca=="ALPINE"] <- "RENAULT"
+coches.t$marca[str_detect(coches.t$marca,"SMART")] <- "SMART"
+coches.t$marca[str_detect(coches.t$marca,"FIAT")] <- "FIAT"
+coches.t$marca[str_detect(coches.t$marca,"PEUGEOT")] <- "PEUGEOT"
+coches.t$marca[str_detect(coches.t$marca,"MERCEDES")] <- "MERCEDES-BENZ"
+coches.t$marca[str_detect(coches.t$marca,"BMW")] <- "BMW"
+coches.t$marca[str_detect(coches.t$marca,"VOLKSWAGEN")] <- "VOLKSWAGEN"
+coches.t$marca[str_detect(coches.t$marca,"JAGUAR")] <- "JAGUAR"
+coches.t$marca[str_detect(coches.t$marca,"TESLA")] <- "TESLA"
+coches.t$marca[str_detect(coches.t$marca,"HYUNDAI")] <- "HYUNDAI"
+coches.t$marca[str_detect(coches.t$marca,"RENAULT")] <- "RENAULT"
+coches.t$marca[str_detect(coches.t$marca,"KIA")] <- "KIA"
+coches.t$marca[str_detect(coches.t$marca,"NISSAN")] <- "NISSAN"
+coches.t$marca[str_detect(coches.t$marca,"SEAT")] <- "SEAT"
+coches.t$marca[str_detect(coches.t$marca,"FRUA PORSCHE")] <- "PORSCHE"
+coches.t$marca[str_detect(coches.t$marca,"JIMINI")] <- "MINI"
+coches.t$marca[str_detect(coches.t$marca,"BOECKAMANN")] <- "FIAT"
+```
+
+
+```{r, echo=FALSE}
+coches.t$modelo[str_detect(coches.t$modelo,"SANDERO")] <- "SANDERO"
+coches.t$modelo[str_detect(coches.t$modelo,"IBIZA")] <- "IBIZA"
+coches.t$modelo[str_detect(coches.t$modelo,"GOLF")] <- "GOLF"
+coches.t$modelo[str_detect(coches.t$modelo,"CLIO")] <- "CLIO"
+coches.t$modelo[str_detect(coches.t$modelo,"POLO")] <- "POLO"
+coches.t$modelo[str_detect(coches.t$modelo,"CORSA")] <- "CORSA"
+coches.t$modelo[str_detect(coches.t$modelo,"FOCUS")] <- "FOCUS"
+coches.t$modelo[str_detect(coches.t$modelo,"MEGANE")] <- "MEGANE"
+coches.t$modelo[str_detect(coches.t$modelo,"COROLLA")] <- "COROLLA"
+coches.t$modelo[str_detect(coches.t$modelo,"TIGUAN")] <- "TIGUAN"
+coches.t$modelo[str_detect(coches.t$modelo,"CAPTUR")] <- "CAPTUR"
+coches.t$modelo[str_detect(coches.t$modelo,"ARONA")] <- "ARONA"
+coches.t$modelo[str_detect(coches.t$modelo,"FIESTA")] <- "FIESTA"
+coches.t$modelo[str_detect(coches.t$modelo,"YARIS")] <- "YARIS"
+coches.t$modelo[str_detect(coches.t$modelo,"SPORTAGE")] <- "SPORTAGE"
+coches.t$modelo[str_detect(coches.t$modelo,"QASHQAI")] <- "QASHQAI"
+coches.t$modelo[str_detect(coches.t$modelo,"C-HR")] <- "C-HR"
+coches.t$modelo[str_detect(coches.t$modelo,"FIAT 500")] <- "FIAT 500"
+coches.t$modelo[str_detect(coches.t$modelo,"TUCSON")] <- "TUCSON"
+coches.t$modelo[str_detect(coches.t$modelo,"RAV4")] <- "RAV4"
+coches.t$modelo[str_detect(coches.t$modelo,"AURIS")] <- "AURIS"
+coches.t$modelo[str_detect(coches.t$modelo,"TUCSON")] <- "TUCSON"
+coches.t$modelo[str_detect(coches.t$modelo,"TOURAN")] <- "TOURAN"
+coches.t$modelo[str_detect(coches.t$modelo,"JUKE")] <- "JUKE"
+coches.t$modelo[str_detect(coches.t$modelo,"MICRA")&(coches.t$marca=="NISSAN")] <- "MICRA"
+coches.t$modelo[str_detect(coches.t$modelo,"FIAT TIPO")&(coches.t$marca=="FIAT")] <- "TIPO"
+coches.t$mm <- str_squish(paste(coches.t$marca,coches.t$modelo))
+```
+
+
+```{r preparando mapa,  warning=FALSE, message=FALSE, echo=FALSE}
+mds <- coches.t %>%
+  group_by(cine) %>%
+  summarize(total = sum(one, na.rm = TRUE),
+            marca1 = names(which.max(table(marca))),
+            cmarca1 = sum(marca==names(which.max(table(marca)))),
+            marca2 = names(sort(-table(marca))[2]),
+            cmarca2 = sum(marca == marca2),
+            modelo1 = names(which.max(table(mm))),
+            cmodelo1 = sum(mm == modelo1),
+            modelo2 = names(sort(-table(mm))[2]),
+            cmodelo2 = sum(mm == modelo2))
+
+mds$marca11 <- mds$marca1
+mds$marca11[!(mds$marca1 %in% rownames(as.matrix(sort(-table(mds$marca1))[1:14])))] <- "OTRA"
+mds$marca21 <- mds$marca2
+mds$marca21[!(mds$marca2 %in% rownames(as.matrix(sort(-table(mds$marca2))[1:14])))] <- "OTRA"
+
+muni <- st_read("shp/Municipios_ETRS89_30N.shp",quiet=TRUE) %>% sf::st_transform('+proj=longlat +datum=WGS84')
+muni <- muni["CODIGO"]
+names(muni)[1] <- "cine"
+muni2 <- st_read(here("shp/output/RentaMedia_2020.shp"), quiet =TRUE) %>% sf::st_transform('+proj=longlat +datum=WGS84')
+names(muni2)[7] <- "cine"
+
+muni <- merge(muni,st_drop_geometry(muni2[,c(3,7,12)]),by="cine",all.x=TRUE)
+rm(muni2)
+muni <- merge(muni,mds,by="cine",all.x=TRUE)
+muni$marca1[is.na(muni$marca1)] <- "SIN DATOS"
+muni$marca11[is.na(muni$marca11)] <- "SIN DATOS"
+pob <- read.xlsx("DatosINE/Poblacion Municipios España 2022.xlsx")
+muni <- merge(muni,pob[c("cine","Pob22")],by="cine",all.x=TRUE)
+muni$totalpc <- muni$total*1000/muni$Pob22
+rm(pob)
+# st_write(muni,"borratodos.shp",append=FALSE)
+```
+
+```{r mapa marcas, warning = FALSE, echo = FALSE, out.width='100%', echo=FALSE}
+cm <- c("red","green", "yellow", "blue", "orange", 
+        "#8E44AD", "#34495E", "gray","#FF00BF" , "#F39C12", 
+        "#EC7063", "#1ABC9C", "#F1C40F", "#FF9FF3","black")
+
+cm <- c("#FF5733", "#4682B4", "gray", "#BA55D3", "#FFD700", "#00CED1", "#FF69B4", "#7FFF00", "#9370DB", "yellow", "#40E0D0", "#800080", "#FFA07A", "#008080", "black")
+
+mylabels <- c(names(sort(-table(muni$marca1)))[1:14],"OTRA")
+muni$marca1 <- as.factor(muni$marca1)
+munima <- list()
+for (i in 1:15){
+munima[[i]] <- muni[muni$marca1==mylabels[i],]
+}
+myweight = .5
+
+map <- leaflet(muni,height=600, width=400,options = leafletOptions(zoomSnap = 0.1, zoomDelta = 0.25)) %>%
+  setView(lng = -3.7033, lat = 40.4169, zoom = 6.4) %>%
+  addTiles() 
+for (i in 1:15){
+map <- map %>%
+  addPolygons(data = munima[[i]], 
+              popup = paste("<b>Municipio:</b>",munima[[i]]$nombre,"<br>",
+                            "Total:",munima[[i]]$total,"<br>",
+                            "Marca más vendida:",munima[[i]]$marca1,"<br>",
+                            "Num:",munima[[i]]$cmarca1,"Coches <br>",
+                            "2º Marca:",munima[[i]]$marca2,"Coches <br>",
+                            "Num:",munima[[i]]$cmarca2,"Coches"),
+              options = popupOptions(closeButton = FALSE),color = "black",
+              fillColor = cm[i],
+              weight = myweight,
+              smoothFactor = 1,
+              opacity = .8,
+              fillOpacity = 1,
+              group = mylabels[i]) 
+}
+map <- map %>% 
+  addLayersControl(overlayGroups = mylabels[1:15],
+  options = layersControlOptions(collapsed = TRUE, colors = cm[1:15])) %>%
+  addLegend(position = "bottomleft", 
+            colors = cm[1:15],
+            labels = mylabels[1:15],
+            title = "",
+            opacity = 1)
+# library(htmltools)
+# browsable(
+#     tagList(
+#         tags$style(".leaflet-control-layers-expanded{color: red}"),        
+#     )
+# )
+map
+```
+
+
